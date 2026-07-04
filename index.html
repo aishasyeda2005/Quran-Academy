@@ -1,0 +1,974 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Student Records</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{
+    --teal-900:#0B4F4A;
+    --teal-800:#0E5F58;
+    --teal-700:#136B62;
+    --gold:#C29B3F;
+    --gold-soft:#E7D5A6;
+    --paper:#FAF8F3;
+    --surface:#FFFFFF;
+    --ink:#22302B;
+    --ink-soft:#6B7A75;
+    --line:#E4DFD3;
+    --good:#2F7D5C;
+    --good-bg:#E7F3EC;
+    --bad:#B5484B;
+    --bad-bg:#FBEAEA;
+    --radius:10px;
+    --serif: Georgia, 'Times New Roman', serif;
+    --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:var(--sans);background:var(--paper);color:var(--ink);}
+  .app{display:flex;min-height:100vh;}
+
+  /* Sidebar */
+  .sidebar{width:230px;flex-shrink:0;background:var(--teal-900);color:#EFEAE0;display:flex;flex-direction:column;padding:22px 14px;}
+  .brand{display:flex;align-items:center;gap:10px;padding:4px 8px 18px 8px;border-bottom:1px solid rgba(255,255,255,0.12);margin-bottom:14px;}
+  .brand svg{flex-shrink:0;}
+  .brand-text{line-height:1.2;}
+  .brand-name{font-family:var(--serif);font-size:15px;font-weight:700;letter-spacing:.2px;}
+  .brand-sub{font-size:10.5px;color:var(--gold-soft);text-transform:uppercase;letter-spacing:.6px;margin-top:2px;}
+  .brand-name[contenteditable]{outline:none;cursor:text;border-bottom:1px dashed transparent;}
+  .brand-name[contenteditable]:hover{border-bottom:1px dashed rgba(255,255,255,.4);}
+
+  .nav{display:flex;flex-direction:column;gap:2px;margin-top:6px;}
+  .nav button{all:unset;cursor:pointer;padding:10px 12px;border-radius:8px;font-size:13.5px;display:flex;align-items:center;gap:10px;color:#D9E7E3;transition:background .15s;}
+  .nav button:hover{background:rgba(255,255,255,0.08);}
+  .nav button.active{background:var(--gold);color:#20281f;font-weight:700;}
+  .nav .icon{width:16px;text-align:center;font-size:14px;}
+  .sidebar-footer{margin-top:auto;font-size:10.5px;color:rgba(239,234,224,.45);padding:8px;}
+
+  /* Main */
+  .main{flex:1;padding:34px 40px;max-width:1200px;}
+  h1.page-title{font-family:var(--serif);font-size:26px;margin:0 0 4px 0;color:var(--teal-900);}
+  .page-sub{color:var(--ink-soft);font-size:13.5px;margin:0 0 26px 0;}
+  .divider-motif{width:56px;height:10px;margin-bottom:22px;opacity:.7;}
+
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:22px;margin-bottom:20px;}
+  .card h3{margin:0 0 14px 0;font-family:var(--serif);font-size:16px;color:var(--teal-900);}
+
+  .grid{display:grid;gap:16px;}
+  .grid-4{grid-template-columns:repeat(4,1fr);}
+  .grid-3{grid-template-columns:repeat(3,1fr);}
+  .grid-2{grid-template-columns:repeat(2,1fr);}
+  @media (max-width:900px){.grid-4,.grid-3,.grid-2{grid-template-columns:1fr 1fr;}}
+
+  .stat{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:18px;}
+  .stat .num{font-family:var(--serif);font-size:28px;color:var(--teal-900);font-weight:700;}
+  .stat .label{font-size:12px;color:var(--ink-soft);margin-top:2px;text-transform:uppercase;letter-spacing:.4px;}
+
+  label{display:block;font-size:12px;color:var(--ink-soft);margin-bottom:5px;font-weight:600;letter-spacing:.2px;}
+  input[type=text],input[type=number],input[type=date],input[type=tel],input[type=password],select,textarea{
+    width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:7px;font-size:13.5px;background:#fff;color:var(--ink);font-family:var(--sans);
+  }
+  textarea{resize:vertical;min-height:60px;}
+  input:focus,select:focus,textarea:focus{outline:2px solid var(--teal-700);outline-offset:1px;}
+  .field{margin-bottom:14px;}
+
+  .btn{all:unset;cursor:pointer;padding:9px 16px;border-radius:7px;font-size:13.5px;font-weight:600;text-align:center;display:inline-flex;align-items:center;gap:6px;}
+  .btn-primary{background:var(--teal-900);color:#fff;}
+  .btn-primary:hover{background:var(--teal-800);}
+  .btn-gold{background:var(--gold);color:#20281f;}
+  .btn-gold:hover{background:#B08D34;}
+  .btn-ghost{background:transparent;color:var(--teal-900);border:1px solid var(--line);}
+  .btn-ghost:hover{background:#F1EEE6;}
+  .btn-danger{background:transparent;color:var(--bad);border:1px solid var(--bad-bg);}
+  .btn-danger:hover{background:var(--bad-bg);}
+  .btn-sm{padding:6px 10px;font-size:12px;}
+  .btn:disabled{opacity:.5;cursor:not-allowed;}
+
+  table{width:100%;border-collapse:collapse;font-size:13px;}
+  th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--ink-soft);border-bottom:2px solid var(--line);padding:8px 10px;}
+  td{padding:10px;border-bottom:1px solid var(--line);vertical-align:middle;}
+  tr:last-child td{border-bottom:none;}
+  .empty-row td{text-align:center;color:var(--ink-soft);padding:30px;font-style:italic;}
+
+  .badge{display:inline-block;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:.2px;}
+  .badge-nazra{background:#EAF1EE;color:var(--teal-700);}
+  .badge-hifz{background:var(--gold-soft);color:#7A5E12;}
+  .badge-paid{background:var(--good-bg);color:var(--good);}
+  .badge-unpaid{background:var(--bad-bg);color:var(--bad);}
+
+  .toggle-pill{cursor:pointer;border:none;padding:6px 14px;border-radius:20px;font-size:12px;font-weight:700;}
+  .toggle-pill.paid{background:var(--good-bg);color:var(--good);}
+  .toggle-pill.unpaid{background:var(--bad-bg);color:var(--bad);}
+
+  .toolbar{display:flex;gap:12px;align-items:end;flex-wrap:wrap;margin-bottom:16px;}
+  .toolbar .field{margin-bottom:0;min-width:150px;}
+  .search-input{max-width:260px;}
+
+  .row-actions{display:flex;gap:6px;}
+  .empty-state{text-align:center;padding:50px 20px;color:var(--ink-soft);}
+  .empty-state svg{opacity:.5;margin-bottom:10px;}
+  .empty-state p{margin:4px 0;font-size:13.5px;}
+
+  .subject-row{display:grid;grid-template-columns:2fr 1fr 1fr 40px;gap:10px;align-items:center;margin-bottom:8px;}
+  .subject-head{display:grid;grid-template-columns:2fr 1fr 1fr 40px;gap:10px;font-size:11px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;}
+  .icon-btn{all:unset;cursor:pointer;color:var(--bad);text-align:center;font-size:15px;}
+
+  .toast{position:fixed;bottom:22px;right:22px;background:var(--teal-900);color:#fff;padding:12px 18px;border-radius:8px;font-size:13px;box-shadow:0 6px 18px rgba(0,0,0,.18);opacity:0;transform:translateY(10px);transition:all .25s;pointer-events:none;z-index:999;}
+  .toast.show{opacity:1;transform:translateY(0);}
+
+  .modal-backdrop{position:fixed;inset:0;background:rgba(20,25,22,.45);display:flex;align-items:center;justify-content:center;z-index:100;}
+  .modal{background:#fff;border-radius:12px;padding:24px;max-width:420px;width:90%;}
+  .modal h3{font-family:var(--serif);margin-top:0;color:var(--teal-900);}
+  .modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:18px;}
+
+  /* Report card certificate look */
+  .report-card{position:relative;background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:36px;overflow:hidden;}
+  .report-card .watermark{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);opacity:.05;width:340px;height:340px;}
+  .rc-header{text-align:center;border-bottom:2px solid var(--gold);padding-bottom:16px;margin-bottom:20px;position:relative;}
+  .rc-header .inst{font-family:var(--serif);font-size:22px;color:var(--teal-900);font-weight:700;}
+  .rc-header .sub{font-size:12px;color:var(--ink-soft);letter-spacing:.5px;text-transform:uppercase;margin-top:3px;}
+  .rc-title{text-align:center;font-family:var(--serif);font-size:15px;color:var(--gold);letter-spacing:2px;text-transform:uppercase;margin-bottom:20px;}
+  .rc-meta{display:grid;grid-template-columns:1fr 1fr;gap:8px 24px;font-size:13px;margin-bottom:20px;position:relative;}
+  .rc-meta div span{color:var(--ink-soft);font-size:11px;text-transform:uppercase;letter-spacing:.3px;display:block;}
+  .rc-table{width:100%;border-collapse:collapse;margin-bottom:20px;position:relative;}
+  .rc-table th{background:var(--teal-900);color:#fff;font-size:11px;text-transform:uppercase;padding:9px 10px;}
+  .rc-table td{padding:9px 10px;border-bottom:1px solid var(--line);font-size:13px;}
+  .rc-summary{display:flex;justify-content:space-between;align-items:center;background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:14px 18px;margin-bottom:16px;position:relative;}
+  .rc-summary .big{font-family:var(--serif);font-size:24px;color:var(--teal-900);font-weight:700;}
+  .rc-remarks{font-size:13px;border:1px solid var(--line);border-radius:8px;padding:12px 14px;background:var(--paper);margin-bottom:20px;}
+  .rc-sign{display:flex;justify-content:space-between;margin-top:36px;font-size:12px;color:var(--ink-soft);}
+  .rc-sign div{text-align:center;width:160px;border-top:1px solid var(--ink-soft);padding-top:6px;}
+
+  @media print{
+    .sidebar,.no-print{display:none !important;}
+    .main{padding:0;max-width:100%;}
+    body{background:#fff;}
+    .report-card{border:none;padding:0;}
+  }
+
+  .timeline{border-left:2px solid var(--line);padding-left:18px;margin-left:6px;}
+  .timeline-item{position:relative;padding-bottom:20px;}
+  .timeline-item::before{content:'';position:absolute;left:-24px;top:3px;width:10px;height:10px;border-radius:50%;background:var(--gold);border:2px solid #fff;box-shadow:0 0 0 1px var(--gold);}
+  .timeline-date{font-size:11px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.4px;margin-bottom:2px;}
+  .timeline-note{font-size:13.5px;}
+  .timeline-item .del{float:right;}
+
+  /* Login screen */
+  .login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--teal-900);}
+  .login-card{background:#fff;border-radius:14px;padding:36px 34px;width:90%;max-width:360px;text-align:center;box-shadow:0 10px 40px rgba(0,0,0,.25);}
+  .login-card h2{font-family:var(--serif);color:var(--teal-900);margin:4px 0 2px 0;}
+  .login-sub{color:var(--ink-soft);font-size:13px;margin-bottom:20px;}
+  .login-card .field{text-align:left;margin-bottom:14px;}
+  .login-error{color:var(--bad);font-size:12.5px;min-height:16px;margin:-4px 0 10px 0;}
+</style>
+</head>
+<body>
+
+<div class="login-wrap" id="loginScreen">
+  <div class="login-card">
+    <svg width="40" height="40" viewBox="0 0 100 100" style="margin-bottom:10px;"><g fill="none" stroke="#C29B3F" stroke-width="4"><rect x="20" y="20" width="60" height="60"/><rect x="20" y="20" width="60" height="60" transform="rotate(45 50 50)"/></g></svg>
+    <h2>Quran Academy</h2>
+    <p class="login-sub">Sign in to access student records</p>
+    <div class="field"><label>Email</label><input type="text" id="login-email" placeholder="you@example.com"></div>
+    <div class="field"><label>Password</label><input type="password" id="login-password" placeholder="Your password"></div>
+    <p class="login-error" id="login-error"></p>
+    <button class="btn btn-primary" id="login-btn" style="width:100%;justify-content:center;">Sign In</button>
+  </div>
+</div>
+
+<div class="app" id="appShell" style="display:none;">
+  <div class="sidebar">
+    <div class="brand">
+      <svg width="30" height="30" viewBox="0 0 100 100"><g fill="none" stroke="#C29B3F" stroke-width="4"><rect x="20" y="20" width="60" height="60" transform="rotate(0 50 50)"/><rect x="20" y="20" width="60" height="60" transform="rotate(45 50 50)"/></g></svg>
+      <div class="brand-text">
+        <div class="brand-name" id="instName" contenteditable="true" spellcheck="false">Quran Academy</div>
+        <div class="brand-sub">Student Records</div>
+      </div>
+    </div>
+    <div class="nav">
+      <button data-view="dashboard" class="active"><span class="icon">&#9670;</span> Dashboard</button>
+      <button data-view="addStudent"><span class="icon">&#43;</span> Add Student</button>
+      <button data-view="students"><span class="icon">&#9776;</span> Students</button>
+      <button data-view="fees"><span class="icon">&#8362;</span> Fees</button>
+      <button data-view="report"><span class="icon">&#9998;</span> Report Card</button>
+      <button data-view="progress"><span class="icon">&#8635;</span> Progress</button>
+      <button data-view="templates"><span class="icon">&#128221;</span> Report Templates</button>
+      <button data-view="settings"><span class="icon">&#9881;</span> Categories</button>
+    </div>
+    <div class="sidebar-footer">
+      <div id="userEmail" style="color:#D9E7E3;font-size:11.5px;margin-bottom:8px;word-break:break-all;"></div>
+      <button id="logout-btn" style="all:unset;cursor:pointer;color:#E8B4B4;font-size:12px;">&larr; Log out</button>
+    </div>
+  </div>
+
+  <div class="main" id="main"></div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ---------------- State ---------------- */
+let state = {
+  categories: ["Nazra", "Hifz-o-Quran"],
+  students: [],
+  fees: [],
+  reports: [],
+  progress: [],
+  templates: {}
+};
+let editingStudentId = null;
+
+const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+const now = new Date();
+let feesMonth = MONTHS[now.getMonth()];
+let feesYear = now.getFullYear();
+
+const TEMPLATES = {
+  "Nazra": [
+    {name:"Qaida / Nazra Quran", total:20},
+    {name:"Tajweed Rules", total:20},
+    {name:"Memorization of Duas", total:20},
+    {name:"Islamic Studies", total:20},
+    {name:"Discipline & Attendance", total:20}
+  ],
+  "Hifz-o-Quran": [
+    {name:"Sabaq (New Lesson)", total:25},
+    {name:"Sabqi (Recent Revision)", total:25},
+    {name:"Manzil (Old Revision)", total:25},
+    {name:"Tajweed", total:15},
+    {name:"Discipline & Attendance", total:10}
+  ]
+};
+
+/* ---------------- Supabase connection ---------------- */
+const SUPABASE_URL = "https://wsfgirpkomqyfvmlutld.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndzZmdpcnBrb21xeWZ2bWx1dGxkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMxNjU5MjksImV4cCI6MjA5ODc0MTkyOX0.lY9vf5okKKArzsZ8QG29nBagfjWPa8BIPNpounf6iAk";
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+function dbToStudent(r){
+  return { id:r.id, name:r.name, fatherName:r.father_name, category:r.category, rollNo:r.roll_no,
+    admissionDate:r.admission_date, age:r.age, contact:r.contact, address:r.address,
+    createdAt: new Date(r.created_at).getTime() };
+}
+function dbToFee(r){ return { id:r.id, studentId:r.student_id, month:r.month, year:r.year, paid:r.paid, amount:r.amount, date:r.date }; }
+function dbToReport(r){ return { id:r.id, studentId:r.student_id, term:r.term, remarks:r.remarks, teacher:r.teacher, subjects:r.subjects||[], createdAt:new Date(r.created_at).getTime() }; }
+function dbToProgress(r){ return { id:r.id, studentId:r.student_id, date:r.date, note:r.note }; }
+
+async function loadAll(){
+  try{
+    const [catsRes, studsRes, feesRes, reportsRes, progRes, settingsRes, templatesRes] = await Promise.all([
+      sb.from('categories').select('*').order('name'),
+      sb.from('students').select('*'),
+      sb.from('fees').select('*'),
+      sb.from('reports').select('*'),
+      sb.from('progress').select('*'),
+      sb.from('settings').select('*').eq('id',1).maybeSingle(),
+      sb.from('report_templates').select('*')
+    ]);
+    state.categories = (catsRes.data||[]).map(c=>c.name);
+    state.students = (studsRes.data||[]).map(dbToStudent);
+    state.fees = (feesRes.data||[]).map(dbToFee);
+    state.reports = (reportsRes.data||[]).map(dbToReport);
+    state.progress = (progRes.data||[]).map(dbToProgress);
+    state.templates = {};
+    (templatesRes.data||[]).forEach(t=>{ state.templates[t.category] = t.subjects; });
+    document.getElementById('instName').textContent = (settingsRes.data && settingsRes.data.institute_name) || "Quran Academy";
+  }catch(e){
+    console.error(e);
+    showToast("Could not connect to the database. Check your internet connection.");
+  }
+}
+
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(()=>t.classList.remove('show'), 2200);
+}
+
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+function esc(s){ return (s||"").toString().replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function catBadgeClass(cat){ return cat === "Nazra" ? "badge-nazra" : "badge-hifz"; }
+
+/* ---------------- Navigation ---------------- */
+const views = {};
+document.querySelectorAll('.nav button').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.nav button').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    render(btn.dataset.view);
+  });
+});
+document.getElementById('instName').addEventListener('blur', async (e)=>{
+  const name = e.target.textContent.trim() || "Quran Academy";
+  const { error } = await sb.from('settings').update({ institute_name: name }).eq('id', 1);
+  if (error){ showToast("Could not save name"); console.error(error); return; }
+  showToast("Institute name updated");
+});
+
+function render(view){
+  const main = document.getElementById('main');
+  main.innerHTML = views[view]();
+  attachHandlers(view);
+  window.scrollTo(0,0);
+}
+
+/* ---------------- Dashboard ---------------- */
+views.dashboard = ()=>{
+  const total = state.students.length;
+  const byCat = {};
+  state.categories.forEach(c=>byCat[c]=state.students.filter(s=>s.category===c).length);
+  const feesThisMonth = state.fees.filter(f=>f.month===feesMonth && f.year===feesYear);
+  const paidCount = feesThisMonth.filter(f=>f.paid).length;
+  const totalCollected = feesThisMonth.filter(f=>f.paid).reduce((s,f)=>s+(Number(f.amount)||0),0);
+  const pendingCount = total - paidCount;
+
+  const recentStudents = [...state.students].sort((a,b)=>b.createdAt-a.createdAt).slice(0,5);
+
+  // Build all-time monthly history from every month/year that has fee records
+  const monthKeys = {};
+  state.fees.forEach(f=>{
+    const key = `${f.year}-${MONTHS.indexOf(f.month)}`;
+    if (!monthKeys[key]) monthKeys[key] = { month:f.month, year:f.year, paid:0, collected:0 };
+    if (f.paid){ monthKeys[key].paid += 1; monthKeys[key].collected += (Number(f.amount)||0); }
+  });
+  const history = Object.values(monthKeys).sort((a,b)=> b.year - a.year || MONTHS.indexOf(b.month)-MONTHS.indexOf(a.month));
+
+  return `
+    <h1 class="page-title">Assalamu Alaikum</h1>
+    <p class="page-sub">Here's an overview of your academy — ${esc(feesMonth)} ${feesYear}</p>
+    ${motif()}
+    <div class="toolbar">
+      <div class="field"><label>Viewing Month</label><select id="dash-month">${MONTHS.map(m=>`<option ${m===feesMonth?'selected':''}>${m}</option>`).join('')}</select></div>
+      <div class="field"><label>Year</label><input type="number" id="dash-year" value="${feesYear}" style="width:110px;"></div>
+    </div>
+    <div class="grid grid-4">
+      <div class="stat"><div class="num">${total}</div><div class="label">Total Students</div></div>
+      ${state.categories.map(c=>`<div class="stat"><div class="num">${byCat[c]||0}</div><div class="label">${esc(c)}</div></div>`).join('')}
+      <div class="stat"><div class="num">Rs. ${totalCollected.toLocaleString()}</div><div class="label">Collected (${esc(feesMonth)})</div></div>
+    </div>
+    <div class="grid grid-2" style="margin-top:20px;">
+      <div class="card">
+        <h3>Recently Added Students</h3>
+        ${recentStudents.length ? `<table><thead><tr><th>Name</th><th>Category</th><th>Roll No.</th></tr></thead><tbody>
+          ${recentStudents.map(s=>`<tr><td>${esc(s.name)}</td><td><span class="badge ${catBadgeClass(s.category)}">${esc(s.category)}</span></td><td>${esc(s.rollNo||'—')}</td></tr>`).join('')}
+        </tbody></table>` : emptyState("No students yet", "Add your first student to get started.")}
+      </div>
+      <div class="card">
+        <h3>Fees Snapshot — ${esc(feesMonth)} ${feesYear}</h3>
+        <div class="grid grid-2">
+          <div class="stat"><div class="num" style="color:var(--good)">${paidCount}</div><div class="label">Paid</div></div>
+          <div class="stat"><div class="num" style="color:var(--bad)">${Math.max(pendingCount,0)}</div><div class="label">Pending</div></div>
+        </div>
+        <p class="page-sub" style="margin-top:14px;">Go to the Fees tab to record this month's submissions.</p>
+      </div>
+    </div>
+    <div class="card" style="margin-top:20px;">
+      <h3>Fees History — All Months</h3>
+      ${history.length ? `<table><thead><tr><th>Month</th><th>Students Paid</th><th>Amount Collected</th></tr></thead><tbody>
+        ${history.map(h=>`<tr><td>${esc(h.month)} ${h.year}</td><td>${h.paid}</td><td>Rs. ${h.collected.toLocaleString()}</td></tr>`).join('')}
+      </tbody></table>` : emptyState("No fee records yet", "Once you mark fees for a month, its summary will appear here.")}
+    </div>
+  `;
+};
+
+function motif(){
+  return `<svg class="divider-motif" viewBox="0 0 60 10"><g fill="none" stroke="#C29B3F" stroke-width="1.4"><line x1="0" y1="5" x2="18" y2="5"/><circle cx="24" cy="5" r="3.2"/><line x1="30" y1="5" x2="60" y2="5"/></g></svg>`;
+}
+function emptyState(title, sub){
+  return `<div class="empty-state">
+    <svg width="46" height="46" viewBox="0 0 100 100"><g fill="none" stroke="#0B4F4A" stroke-width="3"><rect x="20" y="20" width="60" height="60"/><rect x="20" y="20" width="60" height="60" transform="rotate(45 50 50)"/></g></svg>
+    <p style="font-weight:700;color:var(--ink);">${title}</p><p>${sub}</p>
+  </div>`;
+}
+
+/* ---------------- Add / Edit Student ---------------- */
+views.addStudent = ()=>{
+  const editing = editingStudentId ? state.students.find(s=>s.id===editingStudentId) : null;
+  return `
+    <h1 class="page-title">${editing ? 'Edit Student' : 'Add New Student'}</h1>
+    <p class="page-sub">${editing ? "Update this student's details." : 'Enter the details of the new student below.'}</p>
+    ${motif()}
+    <div class="card" style="max-width:640px;">
+      <div class="grid grid-2">
+        <div class="field"><label>Full Name *</label><input type="text" id="f-name" value="${editing?esc(editing.name):''}" placeholder="e.g. Muhammad Ali"></div>
+        <div class="field"><label>Father's Name</label><input type="text" id="f-father" value="${editing?esc(editing.fatherName):''}" placeholder="e.g. Abdul Rahman"></div>
+        <div class="field"><label>Category *</label>
+          <select id="f-category">
+            ${state.categories.map(c=>`<option value="${esc(c)}" ${editing&&editing.category===c?'selected':''}>${esc(c)}</option>`).join('')}
+          </select>
+        </div>
+        <div class="field"><label>Roll No.</label><input type="text" id="f-roll" value="${editing?esc(editing.rollNo):''}" placeholder="e.g. 021"></div>
+        <div class="field"><label>Date of Admission</label><input type="date" id="f-admission" value="${editing?editing.admissionDate:''}"></div>
+        <div class="field"><label>Age</label><input type="number" id="f-age" value="${editing?editing.age||'':''}" min="1" placeholder="e.g. 10"></div>
+        <div class="field"><label>Guardian Contact</label><input type="tel" id="f-contact" value="${editing?esc(editing.contact):''}" placeholder="03xx-xxxxxxx"></div>
+        <div class="field"><label>Address</label><input type="text" id="f-address" value="${editing?esc(editing.address):''}" placeholder="Optional"></div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:8px;">
+        <button class="btn btn-primary" id="save-student">${editing ? 'Save Changes' : 'Add Student'}</button>
+        ${editing?`<button class="btn btn-ghost" id="cancel-edit">Cancel</button>`:''}
+      </div>
+    </div>
+  `;
+};
+
+/* ---------------- Students List ---------------- */
+let studentFilter = { search:"", category:"All" };
+views.students = ()=>{
+  const filtered = state.students.filter(s=>{
+    const matchCat = studentFilter.category==="All" || s.category===studentFilter.category;
+    const matchSearch = !studentFilter.search || s.name.toLowerCase().includes(studentFilter.search.toLowerCase()) || (s.rollNo||'').toLowerCase().includes(studentFilter.search.toLowerCase());
+    return matchCat && matchSearch;
+  });
+  return `
+    <h1 class="page-title">Students</h1>
+    <p class="page-sub">${state.students.length} student(s) enrolled.</p>
+    ${motif()}
+    <div class="toolbar">
+      <div class="field search-input"><label>Search</label><input type="text" id="search-input" placeholder="Search by name or roll no." value="${esc(studentFilter.search)}"></div>
+      <div class="field"><label>Category</label>
+        <select id="cat-filter">
+          <option ${studentFilter.category==="All"?'selected':''}>All</option>
+          ${state.categories.map(c=>`<option ${studentFilter.category===c?'selected':''}>${esc(c)}</option>`).join('')}
+        </select>
+      </div>
+    </div>
+    <div class="card">
+      ${filtered.length ? `<table><thead><tr><th>Name</th><th>Father's Name</th><th>Category</th><th>Roll No.</th><th>Contact</th><th></th></tr></thead>
+      <tbody>
+        ${filtered.map(s=>`<tr>
+          <td><strong>${esc(s.name)}</strong></td>
+          <td>${esc(s.fatherName)||'—'}</td>
+          <td><span class="badge ${catBadgeClass(s.category)}">${esc(s.category)}</span></td>
+          <td>${esc(s.rollNo)||'—'}</td>
+          <td>${esc(s.contact)||'—'}</td>
+          <td class="row-actions">
+            <button class="btn btn-ghost btn-sm edit-student" data-id="${s.id}">Edit</button>
+            <button class="btn btn-danger btn-sm del-student" data-id="${s.id}">Delete</button>
+          </td>
+        </tr>`).join('')}
+      </tbody></table>` : emptyState("No students found", "Try adjusting your filters or add a new student.")}
+    </div>
+  `;
+};
+
+/* ---------------- Fees ---------------- */
+let feesCategoryFilter = "All";
+views.fees = ()=>{
+  const filtered = state.students.filter(s=>feesCategoryFilter==="All"||s.category===feesCategoryFilter);
+  return `
+    <h1 class="page-title">Fee Records</h1>
+    <p class="page-sub">Mark monthly fee submission for each student.</p>
+    ${motif()}
+    <div class="toolbar">
+      <div class="field"><label>Month</label><select id="fees-month">${MONTHS.map(m=>`<option ${m===feesMonth?'selected':''}>${m}</option>`).join('')}</select></div>
+      <div class="field"><label>Year</label><input type="number" id="fees-year" value="${feesYear}" style="width:110px;"></div>
+      <div class="field"><label>Category</label>
+        <select id="fees-cat-filter"><option ${feesCategoryFilter==="All"?'selected':''}>All</option>${state.categories.map(c=>`<option ${feesCategoryFilter===c?'selected':''}>${esc(c)}</option>`).join('')}</select>
+      </div>
+    </div>
+    <div class="card">
+      ${filtered.length ? `<table><thead><tr><th>Name</th><th>Category</th><th>Amount (Rs.)</th><th>Status</th></tr></thead>
+      <tbody>
+        ${filtered.map(s=>{
+          const rec = state.fees.find(f=>f.studentId===s.id && f.month===feesMonth && f.year===feesYear);
+          const paid = rec ? rec.paid : false;
+          const amount = rec ? rec.amount : '';
+          return `<tr>
+            <td><strong>${esc(s.name)}</strong>${s.rollNo?` <span style="color:var(--ink-soft);font-size:11.5px;">#${esc(s.rollNo)}</span>`:''}</td>
+            <td><span class="badge ${catBadgeClass(s.category)}">${esc(s.category)}</span></td>
+            <td><input type="number" class="fee-amount" data-id="${s.id}" value="${amount}" placeholder="0" style="max-width:120px;"></td>
+            <td><button class="toggle-pill ${paid?'paid':'unpaid'} toggle-fee" data-id="${s.id}">${paid?'✓ Paid':'Unpaid'}</button></td>
+          </tr>`;
+        }).join('')}
+      </tbody></table>` : emptyState("No students found", "Add students first to record their fees.")}
+    </div>
+  `;
+};
+
+/* ---------------- Report Card ---------------- */
+let selectedReportStudent = null;
+let currentSubjects = [];
+views.report = ()=>{
+  const student = selectedReportStudent ? state.students.find(s=>s.id===selectedReportStudent) : null;
+  if (!state.students.length){
+    return `<h1 class="page-title">Report Card</h1>${motif()}<div class="card">${emptyState("No students yet","Add a student before creating a report card.")}</div>`;
+  }
+  if (!selectedReportStudent) selectedReportStudent = state.students[0].id;
+  const st = state.students.find(s=>s.id===selectedReportStudent);
+  const studentReports = state.reports.filter(r=>r.studentId===st.id).sort((a,b)=>b.createdAt-a.createdAt);
+
+  if (currentSubjects.length===0){
+    const tmpl = state.templates[st.category] || TEMPLATES[st.category];
+    currentSubjects = tmpl ? tmpl.map(t=>({...t, marks:''})) : [{name:'',total:'',marks:''}];
+  }
+
+  const obtained = currentSubjects.reduce((s,r)=>s+(Number(r.marks)||0),0);
+  const totalMarks = currentSubjects.reduce((s,r)=>s+(Number(r.total)||0),0);
+  const pct = totalMarks ? ((obtained/totalMarks)*100).toFixed(1) : '0.0';
+
+  return `
+    <h1 class="page-title">Report Card</h1>
+    <p class="page-sub">Create and print a report card for a student.</p>
+    ${motif()}
+    <div class="toolbar">
+      <div class="field" style="min-width:220px;"><label>Student</label>
+        <select id="rc-student">${state.students.map(s=>`<option value="${s.id}" ${s.id===st.id?'selected':''}>${esc(s.name)} (${esc(s.category)})</option>`).join('')}</select>
+      </div>
+      <div class="field"><label>Term / Date</label><input type="text" id="rc-term" placeholder="e.g. Monthly Test — July 2026" value=""></div>
+      <button class="btn btn-ghost" id="load-template">Load ${esc(st.category)} Template</button>
+    </div>
+
+    <div class="card">
+      <h3>Subjects / Assessment Areas</h3>
+      <div class="subject-head"><div>Subject</div><div>Marks Obtained</div><div>Total Marks</div><div></div></div>
+      <div id="subject-rows">
+        ${currentSubjects.map((r,i)=>`
+          <div class="subject-row">
+            <input type="text" class="subj-name" data-i="${i}" value="${esc(r.name)}" placeholder="Subject name">
+            <input type="number" class="subj-marks" data-i="${i}" value="${r.marks}" placeholder="0">
+            <input type="number" class="subj-total" data-i="${i}" value="${r.total}" placeholder="0">
+            <button class="icon-btn del-subject" data-i="${i}" title="Remove">&#10005;</button>
+          </div>`).join('')}
+      </div>
+      <button class="btn btn-ghost btn-sm" id="add-subject" style="margin-top:8px;">+ Add Row</button>
+      <div class="grid grid-2" style="margin-top:18px;">
+        <div class="field"><label>Overall Remarks</label><textarea id="rc-remarks" placeholder="e.g. Shows consistent improvement, needs to focus on tajweed rules."></textarea></div>
+        <div class="field"><label>Teacher / Ustad Name</label><input type="text" id="rc-teacher" placeholder="e.g. Qari Abdullah"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;">
+        <div style="font-size:13px;color:var(--ink-soft);">Score: <strong style="color:var(--teal-900);">${obtained} / ${totalMarks}</strong> (${pct}%)</div>
+        <button class="btn btn-primary" id="save-report">Save Report Card</button>
+      </div>
+    </div>
+
+    ${studentReports.length ? `<div class="card">
+      <h3>Previous Report Cards for ${esc(st.name)}</h3>
+      <table><thead><tr><th>Term</th><th>Date Saved</th><th>Score</th><th></th></tr></thead><tbody>
+      ${studentReports.map(r=>{
+        const ob = r.subjects.reduce((s,x)=>s+(Number(x.marks)||0),0);
+        const tt = r.subjects.reduce((s,x)=>s+(Number(x.total)||0),0);
+        return `<tr>
+          <td>${esc(r.term)||'—'}</td>
+          <td>${new Date(r.createdAt).toLocaleDateString()}</td>
+          <td>${ob}/${tt}</td>
+          <td class="row-actions">
+            <button class="btn btn-ghost btn-sm view-report" data-id="${r.id}">View / Print</button>
+            <button class="btn btn-danger btn-sm del-report" data-id="${r.id}">Delete</button>
+          </td>
+        </tr>`;
+      }).join('')}
+      </tbody></table>
+    </div>` : ''}
+  `;
+};
+
+views.reportPrint = (report)=>{
+  const student = state.students.find(s=>s.id===report.studentId);
+  const instName = document.getElementById('instName') ? document.getElementById('instName').textContent : "Quran Academy";
+  const obtained = report.subjects.reduce((s,x)=>s+(Number(x.marks)||0),0);
+  const totalMarks = report.subjects.reduce((s,x)=>s+(Number(x.total)||0),0);
+  const pct = totalMarks ? ((obtained/totalMarks)*100).toFixed(1) : '0.0';
+  let grade = 'C';
+  if (pct>=90) grade='A+'; else if (pct>=80) grade='A'; else if (pct>=70) grade='B'; else if (pct>=60) grade='C'; else grade='Needs Improvement';
+  return `
+    <button class="btn btn-ghost no-print" id="back-to-report" style="margin-bottom:16px;">&larr; Back</button>
+    <button class="btn btn-gold no-print" id="print-report" style="margin-bottom:16px;margin-left:10px;">Print</button>
+    <div class="report-card">
+      <svg class="watermark" viewBox="0 0 100 100"><g fill="none" stroke="#0B4F4A" stroke-width="2"><rect x="15" y="15" width="70" height="70"/><rect x="15" y="15" width="70" height="70" transform="rotate(45 50 50)"/></g></svg>
+      <div class="rc-header">
+        <div class="inst">${esc(instName)}</div>
+        <div class="sub">Student Progress Report</div>
+      </div>
+      <div class="rc-title">${esc(report.term)||'Report Card'}</div>
+      <div class="rc-meta">
+        <div><span>Student Name</span>${esc(student?student.name:'—')}</div>
+        <div><span>Father's Name</span>${esc(student?student.fatherName:'—')||'—'}</div>
+        <div><span>Category</span>${esc(student?student.category:'—')}</div>
+        <div><span>Roll No.</span>${esc(student?student.rollNo:'—')||'—'}</div>
+        <div><span>Date</span>${new Date(report.createdAt).toLocaleDateString()}</div>
+        <div><span>Teacher</span>${esc(report.teacher)||'—'}</div>
+      </div>
+      <table class="rc-table"><thead><tr><th>Subject / Area</th><th>Marks Obtained</th><th>Total Marks</th></tr></thead>
+        <tbody>${report.subjects.map(s=>`<tr><td>${esc(s.name)}</td><td>${s.marks||0}</td><td>${s.total||0}</td></tr>`).join('')}</tbody>
+      </table>
+      <div class="rc-summary">
+        <div><div style="font-size:11px;color:var(--ink-soft);text-transform:uppercase;">Total Score</div><div class="big">${obtained} / ${totalMarks} (${pct}%)</div></div>
+        <div><div style="font-size:11px;color:var(--ink-soft);text-transform:uppercase;">Grade</div><div class="big">${grade}</div></div>
+      </div>
+      <div class="rc-remarks"><strong>Remarks:</strong> ${esc(report.remarks)||'—'}</div>
+      <div class="rc-sign">
+        <div>Teacher's Signature</div>
+        <div>Principal's Signature</div>
+      </div>
+    </div>
+  `;
+};
+
+/* ---------------- Progress ---------------- */
+let selectedProgressStudent = null;
+views.progress = ()=>{
+  if (!state.students.length){
+    return `<h1 class="page-title">Progress</h1>${motif()}<div class="card">${emptyState("No students yet","Add a student to start tracking progress.")}</div>`;
+  }
+  if (!selectedProgressStudent) selectedProgressStudent = state.students[0].id;
+  const st = state.students.find(s=>s.id===selectedProgressStudent);
+  const entries = state.progress.filter(p=>p.studentId===st.id).sort((a,b)=>new Date(b.date)-new Date(a.date));
+  return `
+    <h1 class="page-title">Progress Log</h1>
+    <p class="page-sub">Track lesson-by-lesson progress for each student.</p>
+    ${motif()}
+    <div class="toolbar">
+      <div class="field" style="min-width:240px;"><label>Student</label>
+        <select id="pg-student">${state.students.map(s=>`<option value="${s.id}" ${s.id===st.id?'selected':''}>${esc(s.name)} (${esc(s.category)})</option>`).join('')}</select>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Add Progress Entry</h3>
+      <div class="grid grid-2">
+        <div class="field"><label>Date</label><input type="date" id="pg-date" value="${new Date().toISOString().slice(0,10)}"></div>
+        <div class="field"><label>Progress Note</label><input type="text" id="pg-note" placeholder="${st.category==='Hifz-o-Quran' ? 'e.g. Completed Para 5, revising Surah Yaseen' : 'e.g. Started Qaida page 12'}"></div>
+      </div>
+      <button class="btn btn-primary" id="add-progress">Add Entry</button>
+    </div>
+    <div class="card">
+      <h3>${esc(st.name)}'s Timeline</h3>
+      ${entries.length ? `<div class="timeline">
+        ${entries.map(e=>`<div class="timeline-item">
+          <button class="icon-btn del del-progress" data-id="${e.id}">&#10005;</button>
+          <div class="timeline-date">${new Date(e.date).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})}</div>
+          <div class="timeline-note">${esc(e.note)}</div>
+        </div>`).join('')}
+      </div>` : emptyState("No progress logged yet", "Add the first entry above.")}
+    </div>
+  `;
+};
+
+/* ---------------- Report Templates ---------------- */
+let currentTemplateCategory = null;
+let currentTemplateSubjects = null;
+views.templates = ()=>{
+  if (!currentTemplateCategory) currentTemplateCategory = state.categories[0];
+  if (!currentTemplateSubjects){
+    const saved = state.templates[currentTemplateCategory] || TEMPLATES[currentTemplateCategory] || [];
+    currentTemplateSubjects = saved.map(s=>({...s}));
+  }
+  return `
+    <h1 class="page-title">Report Card Templates</h1>
+    <p class="page-sub">Set the subjects and total marks used whenever you create a report card for each category. Change these once — every new report card will use them automatically.</p>
+    ${motif()}
+    <div class="toolbar">
+      <div class="field" style="min-width:220px;"><label>Category</label>
+        <select id="tmpl-category">${state.categories.map(c=>`<option value="${esc(c)}" ${c===currentTemplateCategory?'selected':''}>${esc(c)}</option>`).join('')}</select>
+      </div>
+    </div>
+    <div class="card" style="max-width:720px;">
+      <h3>${esc(currentTemplateCategory)} — Subjects & Total Marks</h3>
+      <div class="subject-head" style="grid-template-columns:2fr 1fr 40px;"><div>Subject Name</div><div>Total Marks</div><div></div></div>
+      <div id="tmpl-rows">
+        ${currentTemplateSubjects.map((r,i)=>`
+          <div class="subject-row" style="grid-template-columns:2fr 1fr 40px;">
+            <input type="text" class="tmpl-name" data-i="${i}" value="${esc(r.name)}" placeholder="e.g. Tajweed">
+            <input type="number" class="tmpl-total" data-i="${i}" value="${r.total}" placeholder="0">
+            <button class="icon-btn del-tmpl-row" data-i="${i}" title="Remove">&#10005;</button>
+          </div>`).join('')}
+      </div>
+      <button class="btn btn-ghost btn-sm" id="add-tmpl-row" style="margin-top:8px;">+ Add Subject</button>
+      <div style="display:flex;justify-content:flex-end;margin-top:18px;">
+        <button class="btn btn-primary" id="save-template">Save Template</button>
+      </div>
+    </div>
+  `;
+};
+
+/* ---------------- Settings / Categories ---------------- */
+views.settings = ()=>{
+  return `
+    <h1 class="page-title">Categories</h1>
+    <p class="page-sub">Manage the course categories used across the app.</p>
+    ${motif()}
+    <div class="card" style="max-width:480px;">
+      <h3>Current Categories</h3>
+      ${state.categories.map(c=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--line);">
+        <span class="badge ${catBadgeClass(c)}">${esc(c)}</span>
+        <button class="btn btn-danger btn-sm del-category" data-cat="${esc(c)}">Remove</button>
+      </div>`).join('')}
+      <div style="display:flex;gap:10px;margin-top:16px;">
+        <input type="text" id="new-category" placeholder="e.g. Qaida, Tajweed Course">
+        <button class="btn btn-primary" id="add-category">Add</button>
+      </div>
+    </div>
+  `;
+};
+
+/* ---------------- Event Handlers ---------------- */
+function attachHandlers(view){
+  if (view==='dashboard'){
+    document.getElementById('dash-month').onchange = (e)=>{ feesMonth=e.target.value; render('dashboard'); };
+    document.getElementById('dash-year').onchange = (e)=>{ feesYear=Number(e.target.value); render('dashboard'); };
+  }
+  if (view==='addStudent'){
+    document.getElementById('save-student').onclick = async ()=>{
+      const name = document.getElementById('f-name').value.trim();
+      if (!name){ showToast("Name is required"); return; }
+      const row = {
+        name,
+        father_name: document.getElementById('f-father').value.trim(),
+        category: document.getElementById('f-category').value,
+        roll_no: document.getElementById('f-roll').value.trim(),
+        admission_date: document.getElementById('f-admission').value || null,
+        age: document.getElementById('f-age').value ? Number(document.getElementById('f-age').value) : null,
+        contact: document.getElementById('f-contact').value.trim(),
+        address: document.getElementById('f-address').value.trim(),
+      };
+      if (editingStudentId){
+        const { data: updated, error } = await sb.from('students').update(row).eq('id', editingStudentId).select().single();
+        if (error){ showToast("Could not save changes"); console.error(error); return; }
+        const idx = state.students.findIndex(s=>s.id===editingStudentId);
+        state.students[idx] = dbToStudent(updated);
+        showToast("Student updated");
+        editingStudentId = null;
+      } else {
+        const { data: inserted, error } = await sb.from('students').insert(row).select().single();
+        if (error){ showToast("Could not add student"); console.error(error); return; }
+        state.students.push(dbToStudent(inserted));
+        showToast("Student added");
+      }
+      document.querySelector('[data-view="students"]').click();
+    };
+    const cancelBtn = document.getElementById('cancel-edit');
+    if (cancelBtn) cancelBtn.onclick = ()=>{ editingStudentId=null; render('addStudent'); };
+  }
+
+  if (view==='students'){
+    document.getElementById('search-input').oninput = (e)=>{ studentFilter.search = e.target.value; render('students'); };
+    document.getElementById('cat-filter').onchange = (e)=>{ studentFilter.category = e.target.value; render('students'); };
+    document.querySelectorAll('.edit-student').forEach(b=>b.onclick=()=>{
+      editingStudentId = b.dataset.id;
+      document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active'));
+      document.querySelector('[data-view="addStudent"]').classList.add('active');
+      render('addStudent');
+    });
+    document.querySelectorAll('.del-student').forEach(b=>b.onclick=()=>confirmModal(
+      "Delete this student?", "This will also remove their fee and report records.",
+      async ()=>{
+        const id=b.dataset.id;
+        const { error } = await sb.from('students').delete().eq('id', id);
+        if (error){ showToast("Could not delete student"); console.error(error); return; }
+        state.students = state.students.filter(s=>s.id!==id);
+        state.fees = state.fees.filter(f=>f.studentId!==id);
+        state.reports = state.reports.filter(r=>r.studentId!==id);
+        state.progress = state.progress.filter(p=>p.studentId!==id);
+        showToast("Student deleted");
+        render('students');
+      }
+    ));
+  }
+
+  if (view==='fees'){
+    document.getElementById('fees-month').onchange = (e)=>{ feesMonth=e.target.value; render('fees'); };
+    document.getElementById('fees-year').onchange = (e)=>{ feesYear=Number(e.target.value); render('fees'); };
+    document.getElementById('fees-cat-filter').onchange = (e)=>{ feesCategoryFilter=e.target.value; render('fees'); };
+    document.querySelectorAll('.toggle-fee').forEach(b=>b.onclick=async ()=>{
+      const id = b.dataset.id;
+      const amountInput = document.querySelector(`.fee-amount[data-id="${id}"]`);
+      let rec = state.fees.find(f=>f.studentId===id && f.month===feesMonth && f.year===feesYear);
+      const newPaid = rec ? !rec.paid : true;
+      const row = { student_id:id, month:feesMonth, year:feesYear, paid:newPaid, amount: amountInput.value || null, date: new Date().toISOString() };
+      const { data, error } = await sb.from('fees').upsert(row, { onConflict: 'student_id,month,year' }).select().single();
+      if (error){ showToast("Could not save fee status"); console.error(error); return; }
+      if (rec){ Object.assign(rec, dbToFee(data)); } else { state.fees.push(dbToFee(data)); }
+      render('fees');
+    });
+    document.querySelectorAll('.fee-amount').forEach(inp=>inp.onchange=async ()=>{
+      const id = inp.dataset.id;
+      let rec = state.fees.find(f=>f.studentId===id && f.month===feesMonth && f.year===feesYear);
+      const row = { student_id:id, month:feesMonth, year:feesYear, paid: rec ? rec.paid : false, amount: inp.value || null, date: new Date().toISOString() };
+      const { data, error } = await sb.from('fees').upsert(row, { onConflict: 'student_id,month,year' }).select().single();
+      if (error){ showToast("Could not save amount"); console.error(error); return; }
+      if (rec){ Object.assign(rec, dbToFee(data)); } else { state.fees.push(dbToFee(data)); }
+    });
+  }
+
+  if (view==='report'){
+    document.getElementById('rc-student').onchange = (e)=>{ selectedReportStudent = e.target.value; currentSubjects=[]; render('report'); };
+    document.getElementById('load-template').onclick = ()=>{
+      const st = state.students.find(s=>s.id===selectedReportStudent);
+      const tmpl = state.templates[st.category] || TEMPLATES[st.category];
+      currentSubjects = (tmpl||[]).map(t=>({...t, marks:''}));
+      render('report');
+    };
+    document.getElementById('add-subject').onclick = ()=>{ currentSubjects.push({name:'',total:'',marks:''}); render('report'); };
+    document.querySelectorAll('.del-subject').forEach(b=>b.onclick=()=>{ currentSubjects.splice(Number(b.dataset.i),1); render('report'); });
+    document.querySelectorAll('.subj-name').forEach(inp=>inp.oninput=()=>{ currentSubjects[inp.dataset.i].name = inp.value; });
+    document.querySelectorAll('.subj-marks').forEach(inp=>inp.oninput=()=>{ currentSubjects[inp.dataset.i].marks = inp.value; document.querySelector('#main .card div[style*="justify-content:space-between"]')?.remove; refreshScoreLine(); });
+    document.querySelectorAll('.subj-total').forEach(inp=>inp.oninput=()=>{ currentSubjects[inp.dataset.i].total = inp.value; refreshScoreLine(); });
+
+    document.getElementById('save-report').onclick = async ()=>{
+      const term = document.getElementById('rc-term').value.trim();
+      const remarks = document.getElementById('rc-remarks').value.trim();
+      const teacher = document.getElementById('rc-teacher').value.trim();
+      const subjects = currentSubjects.filter(s=>s.name.trim()!=='');
+      if (!subjects.length){ showToast("Add at least one subject"); return; }
+      const row = { student_id: selectedReportStudent, term, remarks, teacher, subjects };
+      const { data, error } = await sb.from('reports').insert(row).select().single();
+      if (error){ showToast("Could not save report card"); console.error(error); return; }
+      state.reports.push(dbToReport(data));
+      showToast("Report card saved");
+      currentSubjects = [];
+      render('report');
+    };
+    document.querySelectorAll('.view-report').forEach(b=>b.onclick=()=>{
+      const report = state.reports.find(r=>r.id===b.dataset.id);
+      document.getElementById('main').innerHTML = views.reportPrint(report);
+      document.getElementById('back-to-report').onclick = ()=>render('report');
+      document.getElementById('print-report').onclick = ()=>window.print();
+    });
+    document.querySelectorAll('.del-report').forEach(b=>b.onclick=()=>confirmModal(
+      "Delete this report card?", "This action cannot be undone.",
+      async ()=>{
+        const { error } = await sb.from('reports').delete().eq('id', b.dataset.id);
+        if (error){ showToast("Could not delete report card"); console.error(error); return; }
+        state.reports = state.reports.filter(r=>r.id!==b.dataset.id);
+        showToast("Report card deleted");
+        render('report');
+      }
+    ));
+  }
+
+  if (view==='progress'){
+    document.getElementById('pg-student').onchange = (e)=>{ selectedProgressStudent=e.target.value; render('progress'); };
+    document.getElementById('add-progress').onclick = async ()=>{
+      const date = document.getElementById('pg-date').value;
+      const note = document.getElementById('pg-note').value.trim();
+      if (!note){ showToast("Please add a progress note"); return; }
+      const { data, error } = await sb.from('progress').insert({ student_id:selectedProgressStudent, date, note }).select().single();
+      if (error){ showToast("Could not add progress"); console.error(error); return; }
+      state.progress.push(dbToProgress(data));
+      showToast("Progress added");
+      render('progress');
+    };
+    document.querySelectorAll('.del-progress').forEach(b=>b.onclick=async ()=>{
+      const { error } = await sb.from('progress').delete().eq('id', b.dataset.id);
+      if (error){ showToast("Could not delete entry"); console.error(error); return; }
+      state.progress = state.progress.filter(p=>p.id!==b.dataset.id);
+      render('progress');
+    });
+  }
+
+  if (view==='templates'){
+    document.getElementById('tmpl-category').onchange = (e)=>{
+      currentTemplateCategory = e.target.value;
+      currentTemplateSubjects = null;
+      render('templates');
+    };
+    document.getElementById('add-tmpl-row').onclick = ()=>{
+      currentTemplateSubjects.push({name:'', total:''});
+      render('templates');
+    };
+    document.querySelectorAll('.del-tmpl-row').forEach(b=>b.onclick=()=>{
+      currentTemplateSubjects.splice(Number(b.dataset.i),1);
+      render('templates');
+    });
+    document.querySelectorAll('.tmpl-name').forEach(inp=>inp.oninput=()=>{ currentTemplateSubjects[inp.dataset.i].name = inp.value; });
+    document.querySelectorAll('.tmpl-total').forEach(inp=>inp.oninput=()=>{ currentTemplateSubjects[inp.dataset.i].total = inp.value; });
+    document.getElementById('save-template').onclick = async ()=>{
+      const subjects = currentTemplateSubjects
+        .filter(s=>s.name.trim()!=='')
+        .map(s=>({ name:s.name.trim(), total:Number(s.total)||0 }));
+      if (!subjects.length){ showToast("Add at least one subject"); return; }
+      const { error } = await sb.from('report_templates')
+        .upsert({ category: currentTemplateCategory, subjects, updated_at: new Date().toISOString() }, { onConflict: 'category' });
+      if (error){ showToast("Could not save template"); console.error(error); return; }
+      state.templates[currentTemplateCategory] = subjects;
+      showToast("Template saved — new report cards will use this");
+    };
+  }
+
+  if (view==='settings'){
+    document.getElementById('add-category').onclick = async ()=>{
+      const val = document.getElementById('new-category').value.trim();
+      if (!val){ return; }
+      if (state.categories.includes(val)){ showToast("Category already exists"); return; }
+      const { error } = await sb.from('categories').insert({ name: val });
+      if (error){ showToast("Could not add category"); console.error(error); return; }
+      state.categories.push(val);
+      showToast("Category added");
+      render('settings');
+    };
+    document.querySelectorAll('.del-category').forEach(b=>b.onclick=()=>confirmModal(
+      `Remove "${b.dataset.cat}"?`, "Existing students in this category will keep it, but it won't be selectable for new entries.",
+      async ()=>{
+        const { error } = await sb.from('categories').delete().eq('name', b.dataset.cat);
+        if (error){ showToast("Could not remove category"); console.error(error); return; }
+        state.categories = state.categories.filter(c=>c!==b.dataset.cat);
+        render('settings');
+      }
+    ));
+  }
+}
+
+function refreshScoreLine(){
+  const obtained = currentSubjects.reduce((s,r)=>s+(Number(r.marks)||0),0);
+  const totalMarks = currentSubjects.reduce((s,r)=>s+(Number(r.total)||0),0);
+  const pct = totalMarks ? ((obtained/totalMarks)*100).toFixed(1) : '0.0';
+  const el = document.querySelector('#main .card + .card, #main .card');
+  document.querySelectorAll('#main .card')[0].querySelectorAll('div')[0]; // no-op safeguard
+  const scoreEl = [...document.querySelectorAll('#main strong')].find(s=>s.textContent.includes('/'));
+  if (scoreEl) scoreEl.parentElement.innerHTML = `Score: <strong style="color:var(--teal-900);">${obtained} / ${totalMarks}</strong> (${pct}%)`;
+}
+
+/* ---------------- Confirm Modal ---------------- */
+function confirmModal(title, sub, onConfirm){
+  const wrap = document.createElement('div');
+  wrap.className = 'modal-backdrop';
+  wrap.innerHTML = `<div class="modal"><h3>${title}</h3><p style="color:var(--ink-soft);font-size:13.5px;">${sub}</p>
+    <div class="modal-actions"><button class="btn btn-ghost" id="modal-cancel">Cancel</button><button class="btn btn-danger" id="modal-confirm" style="background:var(--bad);color:#fff;">Delete</button></div></div>`;
+  document.body.appendChild(wrap);
+  wrap.querySelector('#modal-cancel').onclick = ()=>wrap.remove();
+  wrap.querySelector('#modal-confirm').onclick = ()=>{ onConfirm(); wrap.remove(); };
+  wrap.onclick = (e)=>{ if (e.target===wrap) wrap.remove(); };
+}
+
+/* ---------------- Auth ---------------- */
+async function showApp(session){
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('appShell').style.display = 'flex';
+  document.getElementById('userEmail').textContent = session.user.email;
+  document.getElementById('main').innerHTML = `<div class="empty-state" style="margin-top:100px;">Loading your records…</div>`;
+  await loadAll();
+  render('dashboard');
+}
+function showLogin(){
+  document.getElementById('appShell').style.display = 'none';
+  document.getElementById('loginScreen').style.display = 'flex';
+}
+async function doLogin(){
+  const email = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+  const errEl = document.getElementById('login-error');
+  errEl.textContent = '';
+  if (!email || !password){ errEl.textContent = "Please enter email and password"; return; }
+  const btn = document.getElementById('login-btn');
+  btn.textContent = 'Signing in…'; btn.disabled = true;
+  const { data, error } = await sb.auth.signInWithPassword({ email, password });
+  btn.textContent = 'Sign In'; btn.disabled = false;
+  if (error){ errEl.textContent = "Incorrect email or password"; return; }
+  await showApp(data.session);
+}
+document.getElementById('login-btn').onclick = doLogin;
+document.getElementById('login-password').addEventListener('keydown', e=>{ if (e.key==='Enter') doLogin(); });
+document.getElementById('logout-btn').onclick = async ()=>{
+  await sb.auth.signOut();
+  showLogin();
+};
+
+/* ---------------- Init ---------------- */
+(async function init(){
+  const { data:{ session } } = await sb.auth.getSession();
+  if (session){ await showApp(session); }
+  else { showLogin(); }
+})();
+</script>
+</body>
+</html>

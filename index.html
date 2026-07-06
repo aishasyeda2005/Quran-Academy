@@ -60,6 +60,51 @@
   .grid-2{grid-template-columns:repeat(2,1fr);}
   @media (max-width:900px){.grid-4,.grid-3,.grid-2{grid-template-columns:1fr 1fr;}}
 
+  /* ---------------- Mobile Responsive ---------------- */
+  .mobile-topbar{display:none;}
+  .sidebar-overlay{display:none;}
+  .sidebar-close{display:none;}
+
+  @media (max-width:768px){
+    .app{display:block;}
+    .mobile-topbar{
+      display:flex;align-items:center;gap:12px;width:100%;
+      background:var(--teal-900);color:#fff;border:none;padding:14px 18px;
+      font-size:16px;font-weight:700;font-family:var(--serif);cursor:pointer;
+      position:sticky;top:0;z-index:40;
+    }
+    .mobile-topbar .icon,.mobile-topbar span:first-child{font-size:20px;}
+    .sidebar{
+      position:fixed;top:0;left:0;height:100vh;width:250px;z-index:60;
+      transform:translateX(-100%);transition:transform .25s ease;
+      box-shadow:2px 0 20px rgba(0,0,0,.3);
+    }
+    .sidebar.open{transform:translateX(0);}
+    .sidebar-close{
+      display:block;all:unset;cursor:pointer;color:#EFEAE0;font-size:18px;
+      position:absolute;top:14px;right:14px;
+    }
+    .sidebar-overlay{
+      display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:50;
+    }
+    .sidebar-overlay.open{display:block;}
+    .main{padding:20px 16px;max-width:100%;}
+    h1.page-title{font-size:21px;}
+    .grid-4,.grid-3,.grid-2{grid-template-columns:1fr 1fr;gap:10px;}
+    .toolbar{gap:10px;}
+    .toolbar .field{min-width:0;flex:1 1 140px;}
+    .card{padding:16px;}
+    table{display:block;overflow-x:auto;white-space:nowrap;}
+    .subject-row,.subject-head{grid-template-columns:1.6fr 0.8fr 0.8fr 30px;gap:6px;font-size:12.5px;}
+    .rc-meta{grid-template-columns:1fr;}
+    .report-card{padding:20px 16px;}
+    .rc-sign{flex-direction:column;gap:16px;align-items:center;}
+  }
+  @media (max-width:420px){
+    .grid-4,.grid-3,.grid-2{grid-template-columns:1fr;}
+  }
+
+
   .stat{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:18px;}
   .stat .num{font-family:var(--serif);font-size:28px;color:var(--teal-900);font-weight:700;}
   .stat .label{font-size:12px;color:var(--ink-soft);margin-top:2px;text-transform:uppercase;letter-spacing:.4px;}
@@ -177,7 +222,12 @@
 </div>
 
 <div class="app" id="appShell" style="display:none;">
-  <div class="sidebar">
+  <button class="mobile-topbar" id="mobileMenuBtn" aria-label="Open menu">
+    <span>&#9776;</span> <span class="mobile-topbar-title">Quran Academy</span>
+  </button>
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+  <div class="sidebar" id="sidebar">
+    <button class="sidebar-close" id="sidebarClose" aria-label="Close menu">&#10005;</button>
     <div class="brand">
       <svg width="30" height="30" viewBox="0 0 100 100"><g fill="none" stroke="#C29B3F" stroke-width="4"><rect x="20" y="20" width="60" height="60" transform="rotate(0 50 50)"/><rect x="20" y="20" width="60" height="60" transform="rotate(45 50 50)"/></g></svg>
       <div class="brand-text">
@@ -297,6 +347,7 @@ document.querySelectorAll('.nav button').forEach(btn=>{
     document.querySelectorAll('.nav button').forEach(b=>b.classList.remove('active'));
     btn.classList.add('active');
     render(btn.dataset.view);
+    closeMobileSidebar();
   });
 });
 document.getElementById('instName').addEventListener('blur', async (e)=>{
@@ -305,6 +356,19 @@ document.getElementById('instName').addEventListener('blur', async (e)=>{
   if (error){ showToast("Could not save name"); console.error(error); return; }
   showToast("Institute name updated");
 });
+
+/* ---------------- Mobile Sidebar Toggle ---------------- */
+function openMobileSidebar(){
+  document.getElementById('sidebar').classList.add('open');
+  document.getElementById('sidebarOverlay').classList.add('open');
+}
+function closeMobileSidebar(){
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebarOverlay').classList.remove('open');
+}
+document.getElementById('mobileMenuBtn').addEventListener('click', openMobileSidebar);
+document.getElementById('sidebarClose').addEventListener('click', closeMobileSidebar);
+document.getElementById('sidebarOverlay').addEventListener('click', closeMobileSidebar);
 
 function render(view){
   const main = document.getElementById('main');

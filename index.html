@@ -27,6 +27,7 @@
   *{box-sizing:border-box;}
   body{margin:0;font-family:var(--sans);background:var(--paper);color:var(--ink);}
   .app{display:flex;min-height:100vh;}
+  .app.hidden{display:none;}
 
   /* Sidebar */
   .sidebar{width:230px;flex-shrink:0;background:var(--teal-900);color:#EFEAE0;display:flex;flex-direction:column;padding:22px 14px;}
@@ -221,7 +222,7 @@
   </div>
 </div>
 
-<div class="app" id="appShell" style="display:none;">
+<div class="app hidden" id="appShell">
   <button class="mobile-topbar" id="mobileMenuBtn" aria-label="Open menu">
     <span>&#9776;</span> <span class="mobile-topbar-title">Quran Academy</span>
   </button>
@@ -997,14 +998,14 @@ function confirmModal(title, sub, onConfirm){
 /* ---------------- Auth ---------------- */
 async function showApp(session){
   document.getElementById('loginScreen').style.display = 'none';
-  document.getElementById('appShell').style.display = 'flex';
+  document.getElementById('appShell').classList.remove('hidden');
   document.getElementById('userEmail').textContent = session.user.email;
   document.getElementById('main').innerHTML = `<div class="empty-state" style="margin-top:100px;">Loading your records…</div>`;
   await loadAll();
   render('dashboard');
 }
 function showLogin(){
-  document.getElementById('appShell').style.display = 'none';
+  document.getElementById('appShell').classList.add('hidden');
   document.getElementById('loginScreen').style.display = 'flex';
 }
 async function doLogin(){
